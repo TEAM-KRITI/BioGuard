@@ -14,19 +14,19 @@ def get_start_keyboard(bot_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [premium_button("Add me", "add", ButtonStyle.SUCCESS, url=f"https://t.me/{bot_username}?startgroup=true")],
         [
-            premium_button("Updates", "updates", ButtonStyle.PRIMARY, callback_data="updates_page"),
+            premium_button("Updates", "updates", ButtonStyle.DANGER, callback_data="updates_page"),
             premium_button("Support", "support", ButtonStyle.PRIMARY, url=SUPPORT_URL)
         ],
         [
             premium_button("User Guide", "language", ButtonStyle.PRIMARY, callback_data="user_guide"),
-            premium_button("About Bot", "source", ButtonStyle.PRIMARY, callback_data="about_bot")
+            premium_button("About Bot", "source", ButtonStyle.DANGER, callback_data="about_bot")
         ],
-        [premium_button("Help", "help", ButtonStyle.PRIMARY, callback_data="help_pm")]
+        [premium_button("Help", "help", ButtonStyle.SUCCESS, callback_data="help_pm")]
     ])
 
 def back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [premium_button("Back", "back", ButtonStyle.PRIMARY, callback_data="start_pm")]
+        [premium_button("Back", "back", ButtonStyle.DANGER, callback_data="start_pm")]
     ])
 
 @Client.on_message(filters.command("start"))
