@@ -56,8 +56,8 @@ def help_keyboard(page: int) -> InlineKeyboardMarkup:
     rows = []
     nav = []
     if page > 0:
-        nav.append(premium_button("Prev", "back", ButtonStyle.PRIMARY, callback_data=f"help_page:{page - 1}"))
-    nav.append(premium_button(f"{page + 1}/{len(PAGES)}", "queue", ButtonStyle.PRIMARY, callback_data=f"help_page:{page}"))
+        nav.append(premium_button("Prev", "back", ButtonStyle.DANGER, callback_data=f"help_page:{page - 1}"))
+    nav.append(premium_button(f"{page + 1}/{len(PAGES)}", "queue", ButtonStyle.DANGER, callback_data=f"help_page:{page}"))
     if page < len(PAGES) - 1:
         nav.append(premium_button("Next", "skip", ButtonStyle.PRIMARY, callback_data=f"help_page:{page + 1}"))
     rows.append(nav)
