@@ -1,13 +1,14 @@
 #This code was published by @MightyAyush on github.com/mightyayush
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.enums import ChatType
+from pyrogram.enums import ChatType, ButtonStyle
 from pyrogram.errors import FloodWait
 import asyncio
 import logging
 import config
 from Client.cache import GROUP_CONFIG_CACHE, APPROVED_USERS_CACHE
 from Client.helpers import get_group_config, get_approved_users, is_user_admin
+from Client.premium import premium_button
 
 logger = logging.getLogger("BioLinkRemover.Admin")
 
@@ -40,56 +41,56 @@ async def get_target_user(client: Client, message: Message) -> tuple[int, str]:
 @Client.on_message(filters.command("approve") & filters.group)
 async def approve_user_cmd(client: Client, message: Message):
     if not await is_user_admin(client, message.chat.id, message.from_user.id):
-        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to group administrators.")
+        await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Access Denied:</b> This command is restricted to group administrators.")
         return
 
     try:
         user_id, mention = await get_target_user(client, message)
     except Exception as e:
-        await message.reply_text(f"❌ <b>Error:</b> {e}")
+        await message.reply_text(f"<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Error:</b> {e}")
         return
 
     await client.db.approve_user(message.chat.id, user_id)
     approved_set = await get_approved_users(client, message.chat.id)
     approved_set.add(user_id)
-    await message.reply_text(f"✅ {mention} has been <b>approved</b>. Their bio will not be scanned in this group.")
+    await message.reply_text(f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> {mention} has been <b>approved</b>. Their bio will not be scanned in this group.")
 
 @Client.on_message(filters.command("unapprove") & filters.group)
 async def unapprove_user_cmd(client: Client, message: Message):
     if not await is_user_admin(client, message.chat.id, message.from_user.id):
-        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to group administrators.")
+        await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Access Denied:</b> This command is restricted to group administrators.")
         return
 
     try:
         user_id, mention = await get_target_user(client, message)
     except Exception as e:
-        await message.reply_text(f"❌ <b>Error:</b> {e}")
+        await message.reply_text(f"<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Error:</b> {e}")
         return
 
     await client.db.unapprove_user(message.chat.id, user_id)
     approved_set = await get_approved_users(client, message.chat.id)
     approved_set.discard(user_id)
-    await message.reply_text(f"✅ {mention} has been <b>unapproved</b>. Their bio will now be scanned.")
+    await message.reply_text(f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> {mention} has been <b>unapproved</b>. Their bio will now be scanned.")
 
 @Client.on_message(filters.command("unapproveall") & filters.group)
 async def unapprove_all_cmd(client: Client, message: Message):
     if not await is_user_admin(client, message.chat.id, message.from_user.id):
-        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to group administrators.")
+        await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Access Denied:</b> This command is restricted to group administrators.")
         return
 
     await client.db.unapprove_all(message.chat.id)
     APPROVED_USERS_CACHE[message.chat.id] = set()
-    await message.reply_text("✅ All approved users have been cleared from this group. Everyone (except admins) will be scanned.")
+    await message.reply_text("<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> All approved users have been cleared from this group. Everyone (except admins) will be scanned.")
 
 @Client.on_message(filters.command("approved") & filters.group)
 async def list_approved_cmd(client: Client, message: Message):
     approved_set = await get_approved_users(client, message.chat.id)
     if not approved_set:
-        await message.reply_text("ℹ️ No users are currently whitelisted in this group.")
+        await message.reply_text("<tg-emoji emoji-id='5350396951407895212'>ℹ️</tg-emoji> No users are currently whitelisted in this group.")
         return
 
-    status_msg = await message.reply_text("🔎 Fetching whitelisted users list...")
-    text = "<b>📋 Whitelisted Users in this group:</b>\n\n"
+    status_msg = await message.reply_text("<tg-emoji emoji-id='5409186957676785646'>🔎</tg-emoji> Fetching whitelisted users list...")
+    text = "<b><tg-emoji emoji-id='5408843502027033965'>📋</tg-emoji> Whitelisted Users in this group:</b>\n\n"
     for idx, uid in enumerate(approved_set, 1):
         try:
             user = await client.get_users(uid)
@@ -101,7 +102,7 @@ async def list_approved_cmd(client: Client, message: Message):
 @Client.on_message(filters.command("config") & filters.group)
 async def config_group_cmd(client: Client, message: Message):
     if not await is_user_admin(client, message.chat.id, message.from_user.id):
-        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to group administrators.")
+        await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> <b>Access Denied:</b> This command is restricted to group administrators.")
         return
 
     current_mode = await get_group_config(client, message.chat.id)
@@ -111,22 +112,22 @@ async def config_group_cmd(client: Client, message: Message):
         if new_mode in ["ban", "mute", "kick"]:
             await client.db.set_group_config(message.chat.id, new_mode)
             GROUP_CONFIG_CACHE[message.chat.id] = new_mode
-            await message.reply_text(f"✅ Punishment mode successfully set to: <b>{new_mode.upper()}</b>")
+            await message.reply_text(f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> Punishment mode successfully set to: <b>{new_mode.upper()}</b>")
             return
         else:
-            await message.reply_text("❌ Invalid mode. Please choose between: `ban`, `mute`, or `kick`.")
+            await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> Invalid mode. Please choose between: `ban`, `mute`, or `kick`.")
             return
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Ban", callback_data=f"set_cfg:ban:{message.chat.id}"),
-            InlineKeyboardButton("Mute", callback_data=f"set_cfg:mute:{message.chat.id}"),
-            InlineKeyboardButton("Kick", callback_data=f"set_cfg:kick:{message.chat.id}")
+            premium_button("Ban", "cancel", ButtonStyle.DANGER, callback_data=f"set_cfg:ban:{message.chat.id}"),
+            premium_button("Mute", "default", ButtonStyle.PRIMARY, callback_data=f"set_cfg:mute:{message.chat.id}"),
+            premium_button("Kick", "cancel", ButtonStyle.DANGER, callback_data=f"set_cfg:kick:{message.chat.id}")
         ]
     ])
 
     await message.reply_text(
-        f"⚙️ <b>BioLinkRemover Configuration</b>\n\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>⚙️</tg-emoji> <b>BioLinkRemover Configuration</b>\n\n"
         f"Group: <b>{message.chat.title}</b>\n"
         f"Current Punishment: <b>{current_mode.upper()}</b>\n\n"
         f"Select a punishment button below to toggle settings for link spam violations:",
@@ -146,7 +147,7 @@ async def config_callback_handler(client: Client, callback_query: CallbackQuery)
     await client.db.set_group_config(chat_id, mode)
     GROUP_CONFIG_CACHE[chat_id] = mode
     await callback_query.answer(f"✅ Config updated to {mode.upper()}", show_alert=True)
-    
+
     try:
         chat = await client.get_chat(chat_id)
         chat_title = chat.title
@@ -155,17 +156,17 @@ async def config_callback_handler(client: Client, callback_query: CallbackQuery)
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("Ban", callback_data=f"set_cfg:ban:{chat_id}"),
-            InlineKeyboardButton("Mute", callback_data=f"set_cfg:mute:{chat_id}"),
-            InlineKeyboardButton("Kick", callback_data=f"set_cfg:kick:{chat_id}")
+            premium_button("Ban", "cancel", ButtonStyle.DANGER, callback_data=f"set_cfg:ban:{chat_id}"),
+            premium_button("Mute", "default", ButtonStyle.PRIMARY, callback_data=f"set_cfg:mute:{chat_id}"),
+            premium_button("Kick", "cancel", ButtonStyle.DANGER, callback_data=f"set_cfg:kick:{chat_id}")
         ]
     ])
 
     await callback_query.edit_message_text(
-        f"⚙️ <b>BioLinkRemover Configuration</b>\n\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>⚙️</tg-emoji> <b>BioLinkRemover Configuration</b>\n\n"
         f"Group: <b>{chat_title}</b>\n"
         f"Current Punishment: <b>{mode.upper()}</b>\n\n"
-        f"✅ Mode updated successfully!",
+        f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> Mode updated successfully!",
         reply_markup=keyboard
     )
 
@@ -177,9 +178,9 @@ async def stats_owner_cmd(client: Client, message: Message):
 
     users_count, groups_count = await client.db.get_stats()
     await message.reply_text(
-        f"📊 <b>Bot Usage Statistics</b>\n\n"
-        f"👤 <b>Total Registered Users:</b> {users_count}\n"
-        f"👥 <b>Total Registered Groups:</b> {groups_count}"
+        f"<tg-emoji emoji-id='6100546468924364734'>📊</tg-emoji> <b>Bot Usage Statistics</b>\n\n"
+        f"<tg-emoji emoji-id='6021618194228187816'>👤</tg-emoji> <b>Total Registered Users:</b> {users_count}\n"
+        f"<tg-emoji emoji-id='5767288287001580715'>👥</tg-emoji> <b>Total Registered Groups:</b> {groups_count}"
     )
 
 @Client.on_message(filters.command("help"))
@@ -189,8 +190,8 @@ async def help_cmd(client: Client, message: Message):
 
     if message.chat.type == ChatType.PRIVATE:
         help_text = (
-            "<b>📚 Help & Commands Guide</b>\n\n"
-            "<b>👮 Admin Commands (in groups):</b>\n"
+            "<b><tg-emoji emoji-id='5350396951407895212'>📚</tg-emoji> Help & Commands Guide</b>\n\n"
+            "<b><tg-emoji emoji-id='5767288287001580715'>👮</tg-emoji> Admin Commands (in groups):</b>\n"
             "• <code>/approve</code> (reply or ID) - Approve user to bypass bio checks.\n"
             "• <code>/unapprove</code> (reply or ID) - Revoke bypass approval.\n"
             "• <code>/unapproveall</code> - Clear all approved users.\n"
@@ -199,7 +200,7 @@ async def help_cmd(client: Client, message: Message):
         )
         if is_owner:
             help_text += (
-                "\n<b>👑 Owner Commands (Private Chat):</b>\n"
+                "\n<b><tg-emoji emoji-id='5217822164362739968'>👑</tg-emoji> Owner Commands (Private Chat):</b>\n"
                 "• <code>/stats</code> - Show bot usage stats.\n"
                 "• <code>/gcast</code> - Broadcast a message to all groups.\n"
                 "• <code>/ucast</code> - Broadcast a message to all users who started PM."
@@ -209,9 +210,9 @@ async def help_cmd(client: Client, message: Message):
         is_admin = await is_user_admin(client, message.chat.id, user_id)
         if is_admin or is_owner:
             await message.reply_text(
-                "<b>📚 Admin Help Guide</b>\n\n"
+                "<b><tg-emoji emoji-id='5350396951407895212'>📚</tg-emoji> Admin Help Guide</b>\n\n"
                 "You have administrative rights to moderate this group with BioLinkRemover.\n\n"
-                "<b>👮 Admin Commands:</b>\n"
+                "<b><tg-emoji emoji-id='5767288287001580715'>👮</tg-emoji> Admin Commands:</b>\n"
                 "• <code>/approve</code> (reply/ID) - Whitelist a user to bypass checks.\n"
                 "• <code>/unapprove</code> (reply/ID) - Remove user from whitelist.\n"
                 "• <code>/unapproveall</code> - Reset all group whitelists.\n"
@@ -219,7 +220,7 @@ async def help_cmd(client: Client, message: Message):
                 "• <code>/config</code> - Configure punishment setting (mute/kick/ban)."
             )
         else:
-            await message.reply_text("❌ Only administrators can request the admin help menu.")
+            await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> Only administrators can request the admin help menu.")
 
 @Client.on_message(filters.command("gcast") & filters.private)
 async def gcast_cmd(client: Client, message: Message):
@@ -234,12 +235,12 @@ async def gcast_cmd(client: Client, message: Message):
     if not broadcast_msg:
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.reply_text("❌ Please reply to a message or provide text to broadcast.")
+            await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> Please reply to a message or provide text to broadcast.")
             return
         text_only = True
         text_to_send = parts[1].strip()
 
-    status_msg = await message.reply_text("📢 Starting group broadcast...")
+    status_msg = await message.reply_text("<tg-emoji emoji-id='6271537028307881531'>📢</tg-emoji> Starting group broadcast...")
     group_ids = await client.db.get_all_group_ids()
 
     success, failure = 0, 0
@@ -265,9 +266,9 @@ async def gcast_cmd(client: Client, message: Message):
             failure += 1
 
     await status_msg.edit_text(
-        f"✅ <b>Group Broadcast Completed!</b>\n\n"
-        f"📈 <b>Success:</b> {success}\n"
-        f"📉 <b>Failed:</b> {failure}"
+        f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> <b>Group Broadcast Completed!</b>\n\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>📈</tg-emoji> <b>Success:</b> {success}\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>📉</tg-emoji> <b>Failed:</b> {failure}"
     )
 
 @Client.on_message(filters.command("ucast") & filters.private)
@@ -283,12 +284,12 @@ async def ucast_cmd(client: Client, message: Message):
     if not broadcast_msg:
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.reply_text("❌ Please reply to a message or provide text to broadcast.")
+            await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> Please reply to a message or provide text to broadcast.")
             return
         text_only = True
         text_to_send = parts[1].strip()
 
-    status_msg = await message.reply_text("📢 Starting user broadcast...")
+    status_msg = await message.reply_text("<tg-emoji emoji-id='6271537028307881531'>📢</tg-emoji> Starting user broadcast...")
     user_ids = await client.db.get_all_user_ids()
 
     success, failure = 0, 0
@@ -314,7 +315,7 @@ async def ucast_cmd(client: Client, message: Message):
             failure += 1
 
     await status_msg.edit_text(
-        f"✅ <b>User Broadcast Completed!</b>\n\n"
-        f"📈 <b>Success:</b> {success}\n"
-        f"📉 <b>Failed:</b> {failure}"
+        f"<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> <b>User Broadcast Completed!</b>\n\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>📈</tg-emoji> <b>Success:</b> {success}\n"
+        f"<tg-emoji emoji-id='6100546468924364734'>📉</tg-emoji> <b>Failed:</b> {failure}"
     )
