@@ -8,7 +8,7 @@ from Client.premium import premium_button, premium_emoji
 
 logger = logging.getLogger("BioLinkRemover.Start")
 
-SUPPORT_URL = "https://t.me/ayush_support"
+SUPPORT_URL = "https://t.me/ArchonCare"
 
 def get_start_keyboard(bot_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
