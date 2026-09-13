@@ -111,8 +111,8 @@ async def user_guide_callback(client: Client, callback_query: CallbackQuery):
 async def about_bot_callback(client: Client, callback_query: CallbackQuery):
     await callback_query.answer()
     text = (
-        f"{premium_emoji('source', '🛡️')} <b>About BioLinkRemover</b>\n\n"
-        f"BioLinkRemover is a Telegram group security bot that helps detect suspicious links, "
+        f"{premium_emoji('source', '🛡️')} <b>𝖡𝗂𝗈 𝖫𝗂𝗇𝗄 𝖱𝖾𝗌𝗍𝗋𝗂𝖼𝗍𝗈𝗋</b>\n\n"
+        f"<b>𝖡𝗂𝗈 𝖫𝗂𝗇𝗄 𝖱𝖾𝗌𝗍𝗋𝗂𝖼𝗍𝗈𝗋</b> is a Telegram group security bot that helps detect suspicious links, "
         f"blacklisted words, and unwanted websites in user bios.\n\n"
         f"{premium_emoji('auth', '⚙️')} It can automatically remove violating messages and apply the group's configured punishment.\n\n"
         f"{premium_emoji('help', '📚')} Use <code>/help</code> to explore the complete command guide."
