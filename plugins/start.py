@@ -78,7 +78,7 @@ async def start_pm_callback(client: Client, callback_query: CallbackQuery):
         f"I am <b>𝖡𝗂𝗈 𝖫𝗂𝗇𝗄 𝖱𝖾𝗌𝗍𝗋𝗂𝖼𝗍𝗈𝗋</b>, I help keep your groups safe by checking user bios for unwanted links "
         f"suspicious websites and blacklisted words.\n\n"
         f"<tg-emoji emoji-id='4904936030232117798'>⚙️</tg-emoji> Violations can be automatically removed with your configured punishment.\n\n"
-        f"<tg-emoji emoji-id='5373098009640836781'>📚</tg-emoji> Use the help button to explore my features."
+        f"<tg-emoji emoji-id='5960842268096073715'>👆</tg-emoji> Use the help button to explore my features."
     )
     await callback_query.answer()
     await callback_query.edit_message_text(text=welcome_text, reply_markup=get_start_keyboard(bot_user.username))
