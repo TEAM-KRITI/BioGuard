@@ -28,23 +28,23 @@ class BioLinkBot(Client):
         try:
             user_ids = await self.db.get_all_user_ids()
             group_ids = await self.db.get_all_group_ids()
-            
+
             USER_IDS_CACHE.update(user_ids)
             GROUP_IDS_CACHE.update(group_ids)
-            
+
             logger.info(f"Loaded {len(user_ids)} users and {len(group_ids)} groups from DB into cache.")
         except Exception as e:
             logger.error(f"Error pre-filling caches: {e}")
-            
+
         if config.LOGGER_GROUP:
             try:
                 await self.send_message(
                     chat_id=config.LOGGER_GROUP,
-                    text="⚡ <b>BioLinkRemover Bot has started successfully.</b>"
+                    text="<tg-emoji emoji-id='6271537028307881531'>⚡</tg-emoji> <b>BioLinkRemover Bot has started successfully.</b>"
                 )
             except Exception as e:
                 logger.warning(f"Could not send startup log to LOGGER_GROUP ({config.LOGGER_GROUP}): {e}")
-                
+
         logger.info("BioLinkRemover bot started successfully.")
 
     async def stop(self, *args, **kwargs):
@@ -53,7 +53,7 @@ class BioLinkBot(Client):
             try:
                 await self.send_message(
                     chat_id=config.LOGGER_GROUP,
-                    text="💤 <b>BioLinkRemover Bot has been stopped.</b>"
+                    text="<tg-emoji emoji-id='5275969776668134187'>💤</tg-emoji> <b>BioLinkRemover Bot has been stopped.</b>"
                 )
             except Exception:
                 pass
