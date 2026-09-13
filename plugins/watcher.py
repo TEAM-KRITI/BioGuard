@@ -10,7 +10,7 @@ import asyncio
 import config
 from Client.cache import USER_IDS_CACHE, GROUP_IDS_CACHE
 from Client.helpers import get_group_config, get_approved_users, is_user_admin
-from Client.premium import premium_button
+from Client.premium import premium_button, premium_emoji
 
 logger = logging.getLogger("BioLinkRemover.Watcher")
 
@@ -155,12 +155,12 @@ async def refresh_mute_callback(client: Client, callback_query: CallbackQuery):
 
     is_admin = await is_user_admin(client, chat_id, clicker_id)
     if clicker_id != target_user_id and not is_admin:
-        await callback_query.answer("❌ Only the muted user themselves can trigger a rescan.", show_alert=True)
+        await callback_query.answer("Only the muted user themselves can trigger a rescan.", show_alert=True)
         return
 
     is_spam, reason = await check_bio_spam(client, target_user_id)
     if is_spam:
-        await callback_query.answer(f"❌ Rescan failed! Your bio still {reason}.", show_alert=True)
+        await callback_query.answer(f"Rescan failed! Your bio still {reason}.", show_alert=True)
         return
 
     try:
@@ -172,7 +172,7 @@ async def refresh_mute_callback(client: Client, callback_query: CallbackQuery):
         except Exception:
             mention = f"User <code>{target_user_id}</code>"
 
-        await callback_query.answer("✅ Success! Your bio is clean, and you have been unmuted.", show_alert=True)
+        await callback_query.answer("Success! Your bio is clean, and you have been unmuted.", show_alert=True)
 
         await callback_query.edit_message_text(
             f"<tg-emoji emoji-id='5275969776668134187'>🛡️</tg-emoji> <b>BioLinkRemover Moderation</b>\n\n"
@@ -191,7 +191,7 @@ async def refresh_mute_callback(client: Client, callback_query: CallbackQuery):
 
     except Exception as e:
         logger.error(f"Failed to unmute user {target_user_id} after rescan: {e}")
-        await callback_query.answer(f"❌ Failed to unmute: {e}", show_alert=True)
+        await callback_query.answer(f"Failed to unmute: {e}", show_alert=True)
 
 @Client.on_callback_query(filters.regex(r"^unban_user:(\d+):(-?\d+)$"))
 async def unban_user_callback(client: Client, callback_query: CallbackQuery):
@@ -200,7 +200,7 @@ async def unban_user_callback(client: Client, callback_query: CallbackQuery):
     clicker_id = callback_query.from_user.id
 
     if not await is_user_admin(client, chat_id, clicker_id):
-        await callback_query.answer("❌ Only group administrators can lift bans.", show_alert=True)
+        await callback_query.answer("Only group administrators can lift bans.", show_alert=True)
         return
 
     try:
@@ -214,7 +214,7 @@ async def unban_user_callback(client: Client, callback_query: CallbackQuery):
 
         clicker_mention = callback_query.from_user.mention
 
-        await callback_query.answer(f"✅ User unbanned successfully.", show_alert=True)
+        await callback_query.answer("User unbanned successfully.", show_alert=True)
 
         await callback_query.edit_message_text(
             f"<tg-emoji emoji-id='5275969776668134187'>🛡️</tg-emoji> <b>BioLinkRemover Moderation</b>\n\n"
@@ -234,4 +234,4 @@ async def unban_user_callback(client: Client, callback_query: CallbackQuery):
 
     except Exception as e:
         logger.error(f"Failed to unban user {target_user_id} via callback: {e}")
-        await callback_query.answer(f"❌ Failed to unban: {e}", show_alert=True)
+        await callback_query.answer(f"Failed to unban: {e}", show_alert=True)

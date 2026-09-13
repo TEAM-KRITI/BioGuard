@@ -8,7 +8,7 @@ import logging
 import config
 from Client.cache import GROUP_CONFIG_CACHE, APPROVED_USERS_CACHE
 from Client.helpers import get_group_config, get_approved_users, is_user_admin
-from Client.premium import premium_button
+from Client.premium import premium_button, premium_emoji
 
 logger = logging.getLogger("BioLinkRemover.Admin")
 
@@ -141,12 +141,12 @@ async def config_callback_handler(client: Client, callback_query: CallbackQuery)
     clicker_id = callback_query.from_user.id
 
     if not await is_user_admin(client, chat_id, clicker_id):
-        await callback_query.answer("❌ You are not authorized to edit this group's configuration.", show_alert=True)
+        await callback_query.answer("You are not authorized to edit this group's configuration.", show_alert=True)
         return
 
     await client.db.set_group_config(chat_id, mode)
     GROUP_CONFIG_CACHE[chat_id] = mode
-    await callback_query.answer(f"✅ Config updated to {mode.upper()}", show_alert=True)
+    await callback_query.answer(f"Config updated to {mode.upper()}", show_alert=True)
 
     try:
         chat = await client.get_chat(chat_id)
@@ -182,45 +182,6 @@ async def stats_owner_cmd(client: Client, message: Message):
         f"<tg-emoji emoji-id='6021618194228187816'>👤</tg-emoji> <b>Total Registered Users:</b> {users_count}\n"
         f"<tg-emoji emoji-id='5767288287001580715'>👥</tg-emoji> <b>Total Registered Groups:</b> {groups_count}"
     )
-
-@Client.on_message(filters.command("help"))
-async def help_cmd(client: Client, message: Message):
-    user_id = message.from_user.id if message.from_user else 0
-    is_owner = (user_id == config.OWNER_ID or user_id in config.SUDO_USERS)
-
-    if message.chat.type == ChatType.PRIVATE:
-        help_text = (
-            "<b><tg-emoji emoji-id='5350396951407895212'>📚</tg-emoji> Help & Commands Guide</b>\n\n"
-            "<b><tg-emoji emoji-id='5767288287001580715'>👮</tg-emoji> Admin Commands (in groups):</b>\n"
-            "• <code>/approve</code> (reply or ID) - Approve user to bypass bio checks.\n"
-            "• <code>/unapprove</code> (reply or ID) - Revoke bypass approval.\n"
-            "• <code>/unapproveall</code> - Clear all approved users.\n"
-            "• <code>/approved</code> - List approved users in the group.\n"
-            "• <code>/config</code> - Configure punishment mode (mute/kick/ban).\n"
-        )
-        if is_owner:
-            help_text += (
-                "\n<b><tg-emoji emoji-id='5217822164362739968'>👑</tg-emoji> Owner Commands (Private Chat):</b>\n"
-                "• <code>/stats</code> - Show bot usage stats.\n"
-                "• <code>/gcast</code> - Broadcast a message to all groups.\n"
-                "• <code>/ucast</code> - Broadcast a message to all users who started PM."
-            )
-        await message.reply_text(help_text)
-    else:
-        is_admin = await is_user_admin(client, message.chat.id, user_id)
-        if is_admin or is_owner:
-            await message.reply_text(
-                "<b><tg-emoji emoji-id='5350396951407895212'>📚</tg-emoji> Admin Help Guide</b>\n\n"
-                "You have administrative rights to moderate this group with BioLinkRemover.\n\n"
-                "<b><tg-emoji emoji-id='5767288287001580715'>👮</tg-emoji> Admin Commands:</b>\n"
-                "• <code>/approve</code> (reply/ID) - Whitelist a user to bypass checks.\n"
-                "• <code>/unapprove</code> (reply/ID) - Remove user from whitelist.\n"
-                "• <code>/unapproveall</code> - Reset all group whitelists.\n"
-                "• <code>/approved</code> - View whitelisted members.\n"
-                "• <code>/config</code> - Configure punishment setting (mute/kick/ban)."
-            )
-        else:
-            await message.reply_text("<tg-emoji emoji-id='6041720006973067267'>❌</tg-emoji> Only administrators can request the admin help menu.")
 
 @Client.on_message(filters.command("gcast") & filters.private)
 async def gcast_cmd(client: Client, message: Message):

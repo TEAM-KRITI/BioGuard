@@ -1,33 +1,40 @@
 #This code was published by @MightyAyush on github.com/mightyayush
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.types import Message, InlineKeyboardMarkup, CallbackQuery
 from pyrogram.enums import ChatType, ButtonStyle
 import logging
-import config
 from Client.cache import USER_IDS_CACHE, GROUP_IDS_CACHE
-from Client.premium import premium_button
+from Client.premium import premium_button, premium_emoji
 
 logger = logging.getLogger("BioLinkRemover.Start")
 
+SUPPORT_URL = "https://t.me/ayush_support"
+
 def get_start_keyboard(bot_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
+        [premium_button("Add me", "add", ButtonStyle.SUCCESS, url=f"https://t.me/{bot_username}?startgroup=true")],
         [
-            premium_button("Add to Group", "add", ButtonStyle.SUCCESS, url=f"https://t.me/{bot_username}?startgroup=true")
+            premium_button("Updates", "updates", ButtonStyle.PRIMARY, callback_data="updates_page"),
+            premium_button("Support", "support", ButtonStyle.PRIMARY, url=SUPPORT_URL)
         ],
         [
-            premium_button("Help", "help", ButtonStyle.PRIMARY, callback_data="help_pm"),
-            premium_button("Support", "support", ButtonStyle.PRIMARY, url="https://t.me/ayush_support")
-        ]
+            premium_button("User Guide", "language", ButtonStyle.PRIMARY, callback_data="user_guide"),
+            premium_button("About Bot", "source", ButtonStyle.PRIMARY, callback_data="about_bot")
+        ],
+        [premium_button("Help", "help", ButtonStyle.PRIMARY, callback_data="help_pm")]
+    ])
+
+def back_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [premium_button("Back", "back", ButtonStyle.PRIMARY, callback_data="start_pm")]
     ])
 
 @Client.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
     chat_type = message.chat.type
     bot_user = await client.get_me()
-
     if chat_type == ChatType.PRIVATE:
         user_id = message.from_user.id
-
         if user_id not in USER_IDS_CACHE:
             try:
                 await client.db.add_user(user_id, message.from_user.username)
@@ -35,9 +42,8 @@ async def start_cmd(client: Client, message: Message):
                 logger.info(f"Registered user via /start: {user_id}")
             except Exception as e:
                 logger.error(f"Error registering user in DB via start: {e}")
-
         welcome_text = (
-            f"<tg-emoji emoji-id='5355051922862653659'>👋</tg-emoji> <b>Hello {message.from_user.first_name}!</b>\n\n"
+            f"{premium_emoji('home', '👋')} <b>Hello {message.from_user.first_name}!</b>\n\n"
             f"I am <b>BioLinkRemover</b>, a security bot designed to protect your groups "
             f"from spam by scanning user bios for links, dirty words, and suspicious websites.\n\n"
             f"If a user without approval sends a message, I will scan their profile's bio. "
@@ -45,10 +51,8 @@ async def start_cmd(client: Client, message: Message):
             f"Use the buttons below to add me to your group or explore my options."
         )
         await message.reply_text(welcome_text, reply_markup=get_start_keyboard(bot_user.username))
-
     else:
         chat_id = message.chat.id
-
         if chat_id not in GROUP_IDS_CACHE:
             try:
                 await client.db.add_group(chat_id, message.chat.title)
@@ -56,15 +60,11 @@ async def start_cmd(client: Client, message: Message):
                 logger.info(f"Registered group via /start: {chat_id}")
             except Exception as e:
                 logger.error(f"Error registering group in DB via start: {e}")
-
         keyboard = InlineKeyboardMarkup([
-            [
-                premium_button("Start in Private", "add", ButtonStyle.SUCCESS, url=f"https://t.me/{bot_user.username}?start=start")
-            ]
+            [premium_button("Start in Private", "add", ButtonStyle.SUCCESS, url=f"https://t.me/{bot_user.username}?start=start")]
         ])
-
         await message.reply_text(
-            f"<tg-emoji emoji-id='5355051922862653659'>👋</tg-emoji> <b>Welcome!</b>\n\n"
+            f"{premium_emoji('home', '👋')} <b>Welcome!</b>\n\n"
             f"Please run the `/start` command in my private messages to see my instructions, "
             f"or click the button below to start the chat.",
             reply_markup=keyboard
@@ -74,7 +74,7 @@ async def start_cmd(client: Client, message: Message):
 async def start_pm_callback(client: Client, callback_query: CallbackQuery):
     bot_user = await client.get_me()
     welcome_text = (
-        f"<tg-emoji emoji-id='5355051922862653659'>👋</tg-emoji> <b>Hello {callback_query.from_user.first_name}!</b>\n\n"
+        f"{premium_emoji('home', '👋')} <b>Hello {callback_query.from_user.first_name}!</b>\n\n"
         f"I am <b>BioLinkRemover</b>, a security bot designed to protect your groups "
         f"from spam by scanning user bios for links, dirty words, and suspicious websites.\n\n"
         f"If a user without approval sends a message, I will scan their profile's bio. "
@@ -82,32 +82,39 @@ async def start_pm_callback(client: Client, callback_query: CallbackQuery):
         f"Use the buttons below to add me to your group or explore my options."
     )
     await callback_query.answer()
-    await callback_query.edit_message_text(
-        text=welcome_text,
-        reply_markup=get_start_keyboard(bot_user.username)
-    )
+    await callback_query.edit_message_text(text=welcome_text, reply_markup=get_start_keyboard(bot_user.username))
 
-@Client.on_callback_query(filters.regex("^help_pm$"))
-async def help_pm_callback(client: Client, callback_query: CallbackQuery):
-    help_text = (
-        "<b><tg-emoji emoji-id='5350396951407895212'>📚</tg-emoji> Help & Commands Directory</b>\n\n"
-        "Here are the commands you can use with this bot:\n\n"
-        "<b><tg-emoji emoji-id='5767288287001580715'>👮</tg-emoji> Group Admin Commands:</b>\n"
-        "• <code>/approve</code> - Whitelist a user (reply to their message or pass user ID/username) to bypass bio scans.\n"
-        "• <code>/unapprove</code> - Remove a user from the whitelist.\n"
-        "• <code>/unapproveall</code> - Clear all whitelisted users in the group.\n"
-        "• <code>/approved</code> - See the list of all approved users in the group.\n"
-        "• <code>/config</code> - View or change the punishment mode (ban, mute, kick).\n"
-        "• <code>/help</code> - Get this help menu.\n\n"
-        "<b><tg-emoji emoji-id='5217822164362739968'>👑</tg-emoji> Owner Commands (Private Chat only):</b>\n"
-        "• <code>/stats</code> - Show bot usage statistics.\n"
-        "• <code>/gcast</code> - Broadcast a message to all registered groups.\n"
-        "• <code>/ucast</code> - Broadcast a message to all users who started the bot."
-    )
-    keyboard = InlineKeyboardMarkup([
-        [
-            premium_button("Back", "back", ButtonStyle.PRIMARY, callback_data="start_pm")
-        ]
-    ])
+
+@Client.on_callback_query(filters.regex("^updates_page$"))
+async def updates_callback(client: Client, callback_query: CallbackQuery):
     await callback_query.answer()
-    await callback_query.edit_message_text(text=help_text, reply_markup=keyboard)
+    text = (
+        f"{premium_emoji('updates', '📢')} <b>Updates</b>\n\n"
+        f"{premium_emoji('source', '💡')} Bot updates and announcements will appear here.\n\n"
+        f"Please check back here whenever a new feature or important change is released."
+    )
+    await callback_query.edit_message_text(text=text, reply_markup=back_keyboard())
+
+@Client.on_callback_query(filters.regex("^user_guide$"))
+async def user_guide_callback(client: Client, callback_query: CallbackQuery):
+    await callback_query.answer()
+    text = (
+        f"{premium_emoji('language', '📚')} <b>User Guide</b>\n\n"
+        f"{premium_emoji('add', '➕')} <b>1. Add me</b> to your group and give the required admin permissions.\n\n"
+        f"{premium_emoji('admins', '👮')} <b>2. Approve trusted users</b> with `/approve`.\n\n"
+        f"{premium_emoji('auth', '🛡️')} <b>3. Configure moderation</b> with `/config` to choose ban, mute, or kick.\n\n"
+        f"{premium_emoji('help', '💡')} <b>4. Need more help?</b> Open the Help Center for every available command."
+    )
+    await callback_query.edit_message_text(text=text, reply_markup=back_keyboard())
+
+@Client.on_callback_query(filters.regex("^about_bot$"))
+async def about_bot_callback(client: Client, callback_query: CallbackQuery):
+    await callback_query.answer()
+    text = (
+        f"{premium_emoji('source', '🛡️')} <b>About BioLinkRemover</b>\n\n"
+        f"BioLinkRemover is a Telegram group security bot that helps detect suspicious links, "
+        f"blacklisted words, and unwanted websites in user bios.\n\n"
+        f"{premium_emoji('auth', '⚙️')} It can automatically remove violating messages and apply the group's configured punishment.\n\n"
+        f"{premium_emoji('help', '📚')} Use <code>/help</code> to explore the complete command guide."
+    )
+    await callback_query.edit_message_text(text=text, reply_markup=back_keyboard())
