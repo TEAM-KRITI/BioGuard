@@ -464,24 +464,71 @@ async def paidgirl_scan_message(client: Client, message: Message):
         except Exception:
             pass
 
+        # Use explicit FALSE permissions instead of relying on an empty
+        # ChatPermissions object. This makes the mute unambiguous across
+        # Telegram/Kurigram versions.
+        mute_permissions = ChatPermissions(
+            can_send_messages=False,
+            can_send_audios=False,
+            can_send_documents=False,
+            can_send_photos=False,
+            can_send_videos=False,
+            can_send_video_notes=False,
+            can_send_voice_notes=False,
+            can_send_polls=False,
+            can_send_other_messages=False,
+            can_add_web_page_previews=False,
+        )
+
+        async def _apply_mute():
+            try:
+                await client.restrict_chat_member(
+                    chat_id,
+                    user_id,
+                    permissions=mute_permissions,
+                    use_independent_chat_permissions=True,
+                )
+            except TypeError:
+                # Compatibility fallback for older Kurigram builds.
+                await client.restrict_chat_member(
+                    chat_id,
+                    user_id,
+                    permissions=mute_permissions,
+                )
+
         try:
-            await client.restrict_chat_member(
-                chat_id,
-                user_id,
-                permissions=ChatPermissions(),
-            )
-        except UserAdminInvalid:
-            return
-        except ChatAdminRequired:
-            logger.error("Paid Girl Guard needs admin rights in %s.", chat_id)
-            return
+            await _apply_mute()
         except FloodWait as fw:
             await asyncio.sleep(fw.value)
-            await client.restrict_chat_member(
-                chat_id,
-                user_id,
-                permissions=ChatPermissions(),
+            await _apply_mute()
+        except (UserAdminInvalid, ChatAdminRequired, RPCError) as exc:
+            logger.exception(
+                "Paid Girl Guard could not mute user=%s chat=%s: %s",
+                user_id, chat_id, exc,
             )
+            # Do not announce a successful mute when Telegram rejected it.
+            return
+
+        # Verify Telegram actually applied the restriction before announcing
+        # the action. This catches API/library incompatibilities immediately.
+        try:
+            member = await client.get_chat_member(chat_id, user_id)
+            permissions = getattr(member, "permissions", None)
+            status = str(getattr(member, "status", "")).lower()
+            can_send = getattr(permissions, "can_send_messages", None)
+            if "restricted" not in status or can_send is not False:
+                logger.error(
+                    "Paid Girl Guard mute verification failed: chat=%s user=%s "
+                    "status=%s can_send_messages=%r",
+                    chat_id, user_id, status, can_send,
+                )
+                return
+        except Exception as exc:
+            logger.exception(
+                "Paid Girl Guard could not verify mute for user=%s chat=%s: %s",
+                user_id, chat_id, exc,
+            )
+            return
 
         mention = message.from_user.mention
         text = (
