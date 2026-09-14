@@ -447,8 +447,15 @@ async def paidgirl_dismiss_callback(client: Client, callback_query: CallbackQuer
 
 @Client.on_message(filters.group & ~filters.service, group=-1)
 async def paidgirl_scan_message(client: Client, message: Message):
-    """Runs alongside the existing bio watcher without changing its behaviour."""
+    """Inspect every normal group message when Paid Girl Guard is enabled."""
+    logger.info(
+        "Paid Girl handler received message chat=%s user=%s message_id=%s",
+        getattr(message.chat, "id", None),
+        getattr(message.from_user, "id", None),
+        getattr(message, "id", None),
+    )
     if not message.from_user:
+        logger.info("Paid Girl handler skipped: message has no from_user")
         return
 
     chat_id = message.chat.id
@@ -457,20 +464,20 @@ async def paidgirl_scan_message(client: Client, message: Message):
     try:
         cfg = await client.db.get_paidgirl_config(chat_id)
         if not cfg["enabled"]:
-            logger.debug("Paid Girl skipped: disabled chat=%s", chat_id)
+            logger.info("Paid Girl skipped: disabled chat=%s", chat_id)
             return
 
         if await is_user_admin(client, chat_id, user_id):
-            logger.debug("Paid Girl skipped: admin chat=%s user=%s", chat_id, user_id)
+            logger.info("Paid Girl skipped: admin chat=%s user=%s", chat_id, user_id)
             return
 
         if await _allowed(client, chat_id, user_id):
-            logger.debug("Paid Girl skipped: allowed chat=%s user=%s", chat_id, user_id)
+            logger.info("Paid Girl skipped: allowed chat=%s user=%s", chat_id, user_id)
             return
 
         # Existing BioGuard approvals also act as a global exemption.
         if user_id in await get_approved_users(client, chat_id):
-            logger.debug("Paid Girl skipped: approved chat=%s user=%s", chat_id, user_id)
+            logger.info("Paid Girl skipped: approved chat=%s user=%s", chat_id, user_id)
             return
 
         is_adult, reason = await check_paidgirl_dp(client, chat_id, user_id)
