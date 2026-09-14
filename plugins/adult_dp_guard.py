@@ -29,8 +29,8 @@ logger = logging.getLogger("BioLinkRemover.PaidGirl")
 
 # Guard is opt-in per group.
 CACHE_TTL = max(30, int(os.getenv("BIOGUARD_PAIDGIRL_CACHE_TTL", "300")))
-STRICT_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_SCORE", "0.82"))
-BRA_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_BRA_SCORE", "0.96"))
+STRICT_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_SCORE", "0.65"))
+BRA_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_BRA_SCORE", "0.70"))
 
 _detector = None
 _detector_lock = asyncio.Lock()
@@ -45,6 +45,7 @@ EXPLICIT_LABELS = {
 EXPOSED_LABELS = {
     "FEMALE_BREAST_EXPOSED",
     "BUTTOCKS_EXPOSED",
+    "MALE_BREAST_EXPOSED",
 }
 COVERED_BREAST_LABEL = "FEMALE_BREAST_COVERED"
 SUPPORT_LABELS = {
@@ -108,18 +109,16 @@ def _result_from_detections(detections: Any) -> tuple[bool, str | None]:
         if score >= STRICT_SCORE:
             return True, f"adult nudity ({score:.0%})"
 
-    # Bra/covered-breast case:
-    # NudeNet can label covered breasts. Requiring a very high confidence
-    # avoids treating ordinary fully-clothed portraits as adult automatically.
+    # Bra / covered-breast case. NudeNet exposes a dedicated
+    # FEMALE_BREAST_COVERED label, so use it together with body-exposure
+    # signals, while also allowing a strong covered-breast detection by itself.
     covered = best.get(COVERED_BREAST_LABEL, 0.0)
+    belly = best.get("BELLY_EXPOSED", 0.0)
+    armpits = best.get("ARMPITS_EXPOSED", 0.0)
     if covered >= BRA_SCORE:
-        belly = best.get("BELLY_EXPOSED", 0.0)
-        armpits = best.get("ARMPITS_EXPOSED", 0.0)
-        if belly >= 0.65 or armpits >= 0.65:
-            return True, f"strongly sexualized covered-breast image ({covered:.0%})"
-        # A very high covered-breast confidence is also sufficient for the
-        # requested bra/underwear-only style of DP.
-        return True, f"strongly sexualized covered-breast image ({covered:.0%})"
+        return True, f"bra/underwear-style DP ({covered:.0%})"
+    if covered >= 0.50 and (belly >= 0.45 or armpits >= 0.45):
+        return True, f"bra/underwear-style DP ({covered:.0%})"
 
     return False, None
 
@@ -147,6 +146,7 @@ async def check_paidgirl_dp(
     async with lock:
         now = time.monotonic()
         temp_path = None
+        downloaded_path = None
         try:
             # Always ask Telegram for the newest photo so a recently changed DP
             # is not hidden behind the inference cache.
@@ -173,11 +173,17 @@ async def check_paidgirl_dp(
             downloaded = await client.download_media(
                 photo.file_id, file_name=temp_path
             )
+            downloaded_path = downloaded
             if not downloaded or not os.path.exists(downloaded):
                 _dp_cache[cache_key] = (now, str(photo_key), False, None)
                 return False, None
 
             is_adult, reason = await _detect_file(downloaded)
+            if os.getenv("BIOGUARD_PAIDGIRL_DEBUG", "false").lower() in {"1", "true", "yes", "on"}:
+                logger.info(
+                    "Paid Girl DP result chat=%s user=%s photo=%s adult=%s reason=%s",
+                    chat_id, user_id, photo_key, is_adult, reason,
+                )
             _dp_cache[cache_key] = (now, str(photo_key), is_adult, reason)
             return is_adult, reason
 
@@ -189,12 +195,13 @@ async def check_paidgirl_dp(
             )
             return False, None
         finally:
-            if temp_path:
-                try:
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-                except OSError:
-                    pass
+            for cleanup_path in {temp_path, downloaded_path}:
+                if cleanup_path:
+                    try:
+                        if os.path.exists(cleanup_path):
+                            os.remove(cleanup_path)
+                    except OSError:
+                        pass
 
 def paidgirl_keyboard(chat_id: int, enabled: bool) -> InlineKeyboardMarkup:
     toggle_text = "Disable Guard" if enabled else "Enable Guard"
