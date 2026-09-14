@@ -31,29 +31,8 @@ PAGES = [
         "icon": "auth",
         "commands": [
             ("/config", "View or change the punishment mode: ban, mute, or kick."),
-            ("/paidgirl", "Open the Paid Girl DP Guard settings panel."),
-            ("/paidgirl on", "Enable automatic adult/sexualized DP checking."),
-            ("/paidgirl off", "Disable Paid Girl DP Guard."),
-            ("/paidgirl allow", "Allow a user so their DP is not checked."),
-            ("/paidgirl unallow", "Remove a user from the Paid Girl allowed list."),
-            ("/paidgirl allowed", "Show users allowed by Paid Girl Guard."),
-            ("/paidgirl clear", "Clear the Paid Girl allowed list."),
         ],
         "note": "BioGuardBot checks non-admin, non-approved users for links, blacklisted words, and suspicious sites in their bio."
-    },
-    {
-        "title": "Paid Girl DP Guard",
-        "icon": "auth",
-        "commands": [
-            ("/paidgirl", "Open the Paid Girl DP Guard settings panel."),
-            ("/paidgirl on", "Enable automatic adult/sexualized DP checking."),
-            ("/paidgirl off", "Disable Paid Girl DP Guard."),
-            ("/paidgirl allow", "Allow a user so their DP is not checked."),
-            ("/paidgirl unallow", "Remove a user from the Paid Girl allowed list."),
-            ("/paidgirl allowed", "Show users allowed by Paid Girl Guard."),
-            ("/paidgirl clear", "Clear the Paid Girl allowed list."),
-        ],
-        "note": "The guard checks a member's current profile photo when they send a message. High-confidence adult/sexualized DPs are muted. Group admins, approved users, and Paid Girl allowed users are exempt."
     },
     {
         "title": "Owner Commands",
