@@ -351,6 +351,16 @@ async def paidgirl_command(client: Client, message: Message):
     )
 
 
+async def _safe_edit_callback(callback_query: CallbackQuery, text: str, reply_markup=None):
+    """Edit a callback message without failing when Telegram reports no change."""
+    try:
+        return await callback_query.edit_message_text(text, reply_markup=reply_markup)
+    except RPCError as exc:
+        if "MESSAGE_NOT_MODIFIED" in str(exc).upper():
+            return None
+        raise
+
+
 @Client.on_callback_query(filters.regex(r"^paidgirl:(toggle|list|clear):(-?\d+)$"))
 async def paidgirl_settings_callback(client: Client, callback_query: CallbackQuery):
     action = callback_query.data.split(":")[1]
@@ -389,7 +399,8 @@ async def paidgirl_settings_callback(client: Client, callback_query: CallbackQue
         title = chat.title or "Group"
     except Exception:
         title = "Group"
-    await callback_query.edit_message_text(
+    await _safe_edit_callback(
+        callback_query,
         _status_text(title, cfg["enabled"]),
         reply_markup=paidgirl_keyboard(chat_id, cfg["enabled"]),
     )
@@ -413,7 +424,8 @@ async def paidgirl_allow_callback(client: Client, callback_query: CallbackQuery)
     except Exception:
         mention = f"User <code>{target_id}</code>"
 
-    await callback_query.edit_message_text(
+    await _safe_edit_callback(
+        callback_query,
         f"{premium_emoji('auth', '🛡️')} <b>Paid Girl DP Guard</b>\n\n"
         f"{premium_emoji('admins', '👤')} {mention} is now <b>ALLOWED</b>.\n"
         f"{premium_emoji('confirm', '✅')} Their DP will no longer be checked in this group."
@@ -433,7 +445,7 @@ async def paidgirl_dismiss_callback(client: Client, callback_query: CallbackQuer
         pass
 
 
-@Client.on_message(filters.group & ~filters.service)
+@Client.on_message(filters.group & ~filters.service, group=-1)
 async def paidgirl_scan_message(client: Client, message: Message):
     """Runs alongside the existing bio watcher without changing its behaviour."""
     if not message.from_user:
@@ -445,16 +457,20 @@ async def paidgirl_scan_message(client: Client, message: Message):
     try:
         cfg = await client.db.get_paidgirl_config(chat_id)
         if not cfg["enabled"]:
+            logger.debug("Paid Girl skipped: disabled chat=%s", chat_id)
             return
 
         if await is_user_admin(client, chat_id, user_id):
+            logger.debug("Paid Girl skipped: admin chat=%s user=%s", chat_id, user_id)
             return
 
         if await _allowed(client, chat_id, user_id):
+            logger.debug("Paid Girl skipped: allowed chat=%s user=%s", chat_id, user_id)
             return
 
         # Existing BioGuard approvals also act as a global exemption.
         if user_id in await get_approved_users(client, chat_id):
+            logger.debug("Paid Girl skipped: approved chat=%s user=%s", chat_id, user_id)
             return
 
         is_adult, reason = await check_paidgirl_dp(client, chat_id, user_id)
