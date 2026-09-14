@@ -80,47 +80,6 @@ class Database:
             upsert=True
         )
 
-
-    async def get_paidgirl_config(self, chat_id: int) -> dict:
-        doc = await self.groups.find_one(
-            {"chat_id": chat_id},
-            {"paidgirl_guard": 1, "paidgirl_allowed": 1}
-        )
-        if not doc:
-            return {"enabled": False, "allowed_users": []}
-        return {
-            "enabled": bool(doc.get("paidgirl_guard", False)),
-            "allowed_users": [int(uid) for uid in doc.get("paidgirl_allowed", [])],
-        }
-
-    async def set_paidgirl_guard(self, chat_id: int, enabled: bool):
-        await self.groups.update_one(
-            {"chat_id": chat_id},
-            {"$set": {"paidgirl_guard": bool(enabled)}},
-            upsert=True
-        )
-
-    async def paidgirl_allow_user(self, chat_id: int, user_id: int):
-        await self.groups.update_one(
-            {"chat_id": chat_id},
-            {"$addToSet": {"paidgirl_allowed": int(user_id)}},
-            upsert=True
-        )
-
-    async def paidgirl_unallow_user(self, chat_id: int, user_id: int):
-        await self.groups.update_one(
-            {"chat_id": chat_id},
-            {"$pull": {"paidgirl_allowed": int(user_id)}},
-            upsert=True
-        )
-
-    async def paidgirl_clear_allowed(self, chat_id: int):
-        await self.groups.update_one(
-            {"chat_id": chat_id},
-            {"$set": {"paidgirl_allowed": []}},
-            upsert=True
-        )
-
     async def get_all_group_ids(self) -> list[int]:
         cursor = self.groups.find({}, {"chat_id": 1})
         docs = await cursor.to_list(length=None)
