@@ -19,6 +19,8 @@ from pyrogram import Client, filters
 from pyrogram.enums import ButtonStyle
 from pyrogram.errors import ChatAdminRequired, FloodWait, RPCError, UserAdminInvalid
 from pyrogram.types import CallbackQuery, ChatPermissions, InlineKeyboardMarkup, Message
+from pyrogram.raw.functions.channels import EditBanned
+from pyrogram.raw.types import ChatBannedRights, InputChannel
 
 import config
 
@@ -29,8 +31,8 @@ logger = logging.getLogger("BioLinkRemover.PaidGirl")
 
 # Guard is opt-in per group.
 CACHE_TTL = max(30, int(os.getenv("BIOGUARD_PAIDGIRL_CACHE_TTL", "300")))
-STRICT_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_SCORE", "0.65"))
-BRA_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_BRA_SCORE", "0.70"))
+STRICT_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_SCORE", "0.55"))
+BRA_SCORE = float(os.getenv("BIOGUARD_PAIDGIRL_BRA_SCORE", "0.60"))
 
 _detector = None
 _detector_lock = asyncio.Lock()
@@ -456,6 +458,10 @@ async def paidgirl_scan_message(client: Client, message: Message):
             return
 
         is_adult, reason = await check_paidgirl_dp(client, chat_id, user_id)
+        logger.info(
+            "Paid Girl scan chat=%s user=%s detected=%s reason=%s",
+            chat_id, user_id, is_adult, reason,
+        )
         if not is_adult:
             return
 
@@ -464,9 +470,9 @@ async def paidgirl_scan_message(client: Client, message: Message):
         except Exception:
             pass
 
-        # Use explicit FALSE permissions instead of relying on an empty
-        # ChatPermissions object. This makes the mute unambiguous across
-        # Telegram/Kurigram versions.
+        # Apply the restriction through the high-level API first, then use
+        # MTProto as a fallback. The raw fallback is important for Kurigram/Pyrogram
+        # builds where a high-level permission argument can differ between versions.
         mute_permissions = ChatPermissions(
             can_send_messages=False,
             can_send_audios=False,
@@ -480,7 +486,7 @@ async def paidgirl_scan_message(client: Client, message: Message):
             can_add_web_page_previews=False,
         )
 
-        async def _apply_mute():
+        async def _high_level_mute():
             try:
                 await client.restrict_chat_member(
                     chat_id,
@@ -489,40 +495,111 @@ async def paidgirl_scan_message(client: Client, message: Message):
                     use_independent_chat_permissions=True,
                 )
             except TypeError:
-                # Compatibility fallback for older Kurigram builds.
                 await client.restrict_chat_member(
                     chat_id,
                     user_id,
                     permissions=mute_permissions,
                 )
 
+        async def _raw_mute():
+            chat_peer = await client.resolve_peer(chat_id)
+            user_peer = await client.resolve_peer(user_id)
+            if not hasattr(chat_peer, "channel_id") or not hasattr(chat_peer, "access_hash"):
+                raise RuntimeError("Paid Girl raw mute requires a supergroup/channel peer")
+            channel_peer = InputChannel(
+                channel_id=chat_peer.channel_id,
+                access_hash=chat_peer.access_hash,
+            )
+            rights = ChatBannedRights(
+                send_messages=True,
+                send_media=True,
+                send_stickers=True,
+                send_gifs=True,
+                send_games=True,
+                send_inline=True,
+                embed_links=True,
+                send_polls=True,
+                send_photos=True,
+                send_videos=True,
+                send_roundvideos=True,
+                send_audios=True,
+                send_voices=True,
+                send_docs=True,
+                send_plain=True,
+                send_reactions=True,
+                until_date=0,
+            )
+            await client.invoke(
+                EditBanned(
+                    channel=channel_peer,
+                    participant=user_peer,
+                    banned_rights=rights,
+                )
+            )
+
+        mute_applied = False
         try:
-            await _apply_mute()
+            await _high_level_mute()
+            mute_applied = True
         except FloodWait as fw:
             await asyncio.sleep(fw.value)
-            await _apply_mute()
+            await _high_level_mute()
+            mute_applied = True
         except (UserAdminInvalid, ChatAdminRequired, RPCError) as exc:
-            logger.exception(
-                "Paid Girl Guard could not mute user=%s chat=%s: %s",
+            logger.warning(
+                "High-level Paid Girl mute failed for user=%s chat=%s: %s; trying MTProto fallback.",
                 user_id, chat_id, exc,
             )
-            # Do not announce a successful mute when Telegram rejected it.
-            return
+
+        if not mute_applied:
+            try:
+                await _raw_mute()
+                mute_applied = True
+            except FloodWait as fw:
+                await asyncio.sleep(fw.value)
+                await _raw_mute()
+                mute_applied = True
+            except Exception as exc:
+                logger.exception(
+                    "MTProto Paid Girl mute fallback failed for user=%s chat=%s: %s",
+                    user_id, chat_id, exc,
+                )
+                return
 
         # Verify Telegram actually applied the restriction before announcing
         # the action. This catches API/library incompatibilities immediately.
         try:
             member = await client.get_chat_member(chat_id, user_id)
             permissions = getattr(member, "permissions", None)
-            status = str(getattr(member, "status", "")).lower()
+            status_obj = getattr(member, "status", "")
+            status = str(getattr(status_obj, "value", status_obj)).lower()
             can_send = getattr(permissions, "can_send_messages", None)
             if "restricted" not in status or can_send is not False:
-                logger.error(
-                    "Paid Girl Guard mute verification failed: chat=%s user=%s "
-                    "status=%s can_send_messages=%r",
+                logger.warning(
+                    "Paid Girl Guard mute verification failed after first attempt: "
+                    "chat=%s user=%s status=%s can_send_messages=%r; retrying raw MTProto.",
                     chat_id, user_id, status, can_send,
                 )
-                return
+                try:
+                    await _raw_mute()
+                    await asyncio.sleep(0.5)
+                    member = await client.get_chat_member(chat_id, user_id)
+                    permissions = getattr(member, "permissions", None)
+                    status_obj = getattr(member, "status", "")
+                    status = str(getattr(status_obj, "value", status_obj)).lower()
+                    can_send = getattr(permissions, "can_send_messages", None)
+                except Exception:
+                    logger.exception(
+                        "Paid Girl Guard raw verification retry failed: chat=%s user=%s",
+                        chat_id, user_id,
+                    )
+                if "restricted" not in status or can_send is not False:
+                    logger.error(
+                        "Paid Girl Guard mute verification failed: chat=%s user=%s "
+                        "status=%s can_send_messages=%r",
+                        chat_id, user_id, status, can_send,
+                    )
+                    return
         except Exception as exc:
             logger.exception(
                 "Paid Girl Guard could not verify mute for user=%s chat=%s: %s",
