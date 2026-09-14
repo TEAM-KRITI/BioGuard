@@ -4,3 +4,4 @@ motor
 pymongo
 dnspython
 python-dotenv
+nudenet>=3.4.2,<4
