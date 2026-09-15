@@ -458,7 +458,6 @@ async def new_member_restriction(client: Client, message: Message):
                 user.id,
                 permissions=text_only_permissions(),
                 until_date=expires_at,
-                use_independent_chat_permissions=True,
             )
 
             await client.db.add_newuser_restriction(
