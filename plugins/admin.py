@@ -12,6 +12,263 @@ from Client.premium import premium_button, premium_emoji
 
 logger = logging.getLogger("BioLinkRemover.Admin")
 
+
+# ---------------------------------------------------------------------------
+# Self Promo
+# ---------------------------------------------------------------------------
+# Everything for Self Promo is intentionally kept in this file. No .env
+# settings are required. Replace SELF_PROMO_IMAGE_URL with the final public
+# image URL when you want the promo to be sent as a photo; leaving it empty
+# makes the system send the same promo as a text message.
+SELF_PROMO_IMAGE_URL = ""
+SELF_PROMO_TEXT = (
+    "<b>🛡️ Bio Link Restrictor</b>\n\n"
+    "Keep your Telegram groups clean from suspicious bios, links and spam "
+    "with <b>Bio Link Restrictor</b>.\n\n"
+    "Add the bot to your groups and keep your community protected."
+)
+SELF_PROMO_BUTTON_TEXT = "➕ Add BioGuard"
+SELF_PROMO_INTERVAL = 24 * 60 * 60
+SELF_PROMO_DELETE_AFTER = 48 * 60 * 60
+SELF_PROMO_LOCK = asyncio.Lock()
+SELF_PROMO_SCHEDULER_TASK = None
+
+
+def _selfpromo_is_owner(message: Message) -> bool:
+    return bool(
+        message.from_user
+        and (
+            message.from_user.id == config.OWNER_ID
+            or message.from_user.id in config.SUDO_USERS
+        )
+    )
+
+
+async def _selfpromo_button(client: Client):
+    try:
+        me = await client.get_me()
+        return InlineKeyboardMarkup([
+            [premium_button(
+                SELF_PROMO_BUTTON_TEXT,
+                "add",
+                ButtonStyle.SUCCESS,
+                url=f"https://t.me/{me.username}?startgroup=true",
+            )]
+        ])
+    except Exception:
+        return None
+
+
+async def _selfpromo_send_one(client: Client, chat_id: int, delete_at):
+    keyboard = await _selfpromo_button(client)
+    if SELF_PROMO_IMAGE_URL.strip():
+        sent = await client.send_photo(
+            chat_id,
+            SELF_PROMO_IMAGE_URL,
+            caption=SELF_PROMO_TEXT,
+            reply_markup=keyboard,
+        )
+    else:
+        sent = await client.send_message(
+            chat_id,
+            SELF_PROMO_TEXT,
+            reply_markup=keyboard,
+        )
+
+    await client.db.db["selfpromo_messages"].update_one(
+        {"chat_id": chat_id, "message_id": sent.id},
+        {"$set": {
+            "chat_id": chat_id,
+            "message_id": sent.id,
+            "delete_at": delete_at,
+        }},
+        upsert=True,
+    )
+
+
+async def _selfpromo_cleanup(client: Client):
+    now = __import__("datetime").datetime.utcnow()
+    collection = client.db.db["selfpromo_messages"]
+    cursor = collection.find(
+        {"delete_at": {"$lte": now}},
+        {"chat_id": 1, "message_id": 1},
+    )
+    for item in await cursor.to_list(length=None):
+        chat_id = item.get("chat_id")
+        message_id = item.get("message_id")
+        try:
+            await client.delete_messages(chat_id, message_id)
+        except Exception:
+            pass
+        finally:
+            await collection.delete_one({"chat_id": chat_id, "message_id": message_id})
+
+
+async def _selfpromo_run(client: Client, trigger: str = "manual"):
+    if SELF_PROMO_LOCK.locked():
+        return {"busy": True, "total": 0, "success": 0, "failure": 0}
+
+    async with SELF_PROMO_LOCK:
+        from datetime import datetime, timedelta
+
+        run_at = datetime.utcnow()
+        delete_at = run_at + timedelta(seconds=SELF_PROMO_DELETE_AFTER)
+        user_ids = await client.db.get_all_user_ids()
+        group_ids = await client.db.get_all_group_ids()
+        targets = list(dict.fromkeys(user_ids + group_ids))
+        success = 0
+        failure = 0
+
+        for chat_id in targets:
+            try:
+                await _selfpromo_send_one(client, chat_id, delete_at)
+                success += 1
+                await asyncio.sleep(0.12)
+            except FloodWait as fw:
+                await asyncio.sleep(fw.value)
+                try:
+                    await _selfpromo_send_one(client, chat_id, delete_at)
+                    success += 1
+                except Exception as e:
+                    failure += 1
+                    logger.warning(f"Self promo retry failed for {chat_id}: {e}")
+            except Exception as e:
+                failure += 1
+                logger.debug(f"Self promo failed for {chat_id}: {e}")
+
+        await client.db.db["selfpromo_settings"].update_one(
+            {"_id": "global"},
+            {"$set": {"last_run": run_at}},
+            upsert=True,
+        )
+
+        if config.LOGGER_GROUP:
+            try:
+                await client.send_message(
+                    config.LOGGER_GROUP,
+                    "<tg-emoji emoji-id='6271537028307881531'>📢</tg-emoji> "
+                    "<b>[SELF PROMO]</b>\n\n"
+                    f"<b>Trigger:</b> {trigger}\n"
+                    f"<b>Total:</b> {len(targets)}\n"
+                    f"<b>Success:</b> {success}\n"
+                    f"<b>Failed:</b> {failure}",
+                )
+            except Exception:
+                pass
+
+        return {
+            "busy": False,
+            "total": len(targets),
+            "success": success,
+            "failure": failure,
+        }
+
+
+async def _selfpromo_scheduler(client: Client):
+    while True:
+        try:
+            await _selfpromo_cleanup(client)
+            settings = await client.db.db["selfpromo_settings"].find_one({"_id": "global"}) or {}
+            if settings.get("enabled", False):
+                last_run = settings.get("last_run")
+                from datetime import datetime
+                now = datetime.utcnow()
+                if last_run is None or (now - last_run).total_seconds() >= SELF_PROMO_INTERVAL:
+                    await _selfpromo_run(client, "automatic")
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.error(f"Self promo scheduler error: {e}")
+        await asyncio.sleep(60)
+
+
+async def _ensure_selfpromo_scheduler(client: Client):
+    global SELF_PROMO_SCHEDULER_TASK
+    if SELF_PROMO_SCHEDULER_TASK and not SELF_PROMO_SCHEDULER_TASK.done():
+        return
+    SELF_PROMO_SCHEDULER_TASK = asyncio.create_task(_selfpromo_scheduler(client))
+    logger.info("Self promo scheduler started.")
+
+
+@Client.on_message(filters.all, group=-100)
+async def _selfpromo_scheduler_bootstrap(client: Client, message: Message):
+    # Starts the persisted 24h scheduler as soon as the bot receives an update.
+    await _ensure_selfpromo_scheduler(client)
+
+
+@Client.on_message(filters.command("selfpromo") & filters.private)
+async def selfpromo_cmd(client: Client, message: Message):
+    if not _selfpromo_is_owner(message):
+        return
+
+    await _ensure_selfpromo_scheduler(client)
+    parts = message.text.split(maxsplit=1)
+    action = parts[1].strip().lower() if len(parts) > 1 else "status"
+
+    if action == "on":
+        await client.db.db["selfpromo_settings"].update_one(
+            {"_id": "global"},
+            {"$set": {"enabled": True}},
+            upsert=True,
+        )
+        await message.reply_text(
+            "<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> "
+            "<b>Self Promo Enabled</b>\n\n"
+            "Automatic promotion will run every <b>24 hours</b>."
+        )
+        return
+
+    if action == "off":
+        await client.db.db["selfpromo_settings"].update_one(
+            {"_id": "global"},
+            {"$set": {"enabled": False}},
+            upsert=True,
+        )
+        await message.reply_text(
+            "<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> "
+            "<b>Self Promo Disabled</b>\n\n"
+            "Automatic promotion has been stopped."
+        )
+        return
+
+    if action == "run":
+        status = await message.reply_text(
+            "<tg-emoji emoji-id='6271537028307881531'>📢</tg-emoji> "
+            "<b>Starting Self Promo...</b>"
+        )
+        result = await _selfpromo_run(client, "manual")
+        if result["busy"]:
+            await status.edit_text(
+                "<tg-emoji emoji-id='6041720006973067267'>⚠️</tg-emoji> "
+                "<b>Another Self Promo broadcast is already running.</b>"
+            )
+            return
+        await status.edit_text(
+            "<tg-emoji emoji-id='5463122435425448565'>✅</tg-emoji> "
+            "<b>Self Promo Completed!</b>\n\n"
+            f"<b>Total:</b> {result['total']}\n"
+            f"<b>Success:</b> {result['success']}\n"
+            f"<b>Failed:</b> {result['failure']}\n\n"
+            "Promo messages will be removed automatically after <b>48 hours</b>."
+        )
+        return
+
+    settings = await client.db.db["selfpromo_settings"].find_one({"_id": "global"}) or {}
+    enabled = "ON" if settings.get("enabled", False) else "OFF"
+    last_run = settings.get("last_run")
+    last_text = last_run.strftime("%Y-%m-%d %H:%M UTC") if last_run else "Never"
+    await message.reply_text(
+        "<tg-emoji emoji-id='6100546468924364734'>📢</tg-emoji> "
+        "<b>Self Promo Status</b>\n\n"
+        f"<b>Automatic:</b> {enabled}\n"
+        "<b>Interval:</b> 24 Hours\n"
+        "<b>Delete After:</b> 48 Hours\n"
+        f"<b>Last Run:</b> {last_text}\n\n"
+        "<code>/selfpromo on</code> — Enable\n"
+        "<code>/selfpromo off</code> — Disable\n"
+        "<code>/selfpromo run</code> — Run now"
+    )
+
 async def get_target_user(client: Client, message: Message) -> tuple[int, str]:
     if message.reply_to_message and message.reply_to_message.from_user:
         user = message.reply_to_message.from_user
