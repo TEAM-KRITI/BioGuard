@@ -89,3 +89,58 @@ class Database:
         users_count = await self.users.count_documents({})
         groups_count = await self.groups.count_documents({})
         return users_count, groups_count
+
+    async def get_newuser_config(self, chat_id: int) -> dict:
+        doc = await self.groups.find_one(
+            {"chat_id": chat_id},
+            {"newuser_enabled": 1, "newuser_duration": 1}
+        )
+        return {
+            "enabled": bool(doc.get("newuser_enabled", False)) if doc else False,
+            "duration": int(doc.get("newuser_duration", 86400)) if doc else 86400,
+        }
+
+    async def set_newuser_config(self, chat_id: int, enabled=None, duration=None):
+        update = {}
+        if enabled is not None:
+            update["newuser_enabled"] = bool(enabled)
+        if duration is not None:
+            update["newuser_duration"] = int(duration)
+        if update:
+            await self.groups.update_one(
+                {"chat_id": chat_id},
+                {"$set": update},
+                upsert=True
+            )
+
+    async def add_newuser_restriction(self, chat_id: int, user_id: int, expires_at):
+        await self.db["newuser_restrictions"].update_one(
+            {"chat_id": chat_id, "user_id": user_id},
+            {
+                "$set": {
+                    "chat_id": chat_id,
+                    "user_id": user_id,
+                    "expires_at": expires_at,
+                }
+            },
+            upsert=True
+        )
+
+    async def get_active_newuser_restrictions(self, chat_id: int, now=None) -> list[dict]:
+        now = now or datetime.utcnow()
+        cursor = self.db["newuser_restrictions"].find(
+            {"chat_id": chat_id, "expires_at": {"$gt": now}},
+            {"user_id": 1, "expires_at": 1}
+        )
+        return await cursor.to_list(length=None)
+
+    async def remove_newuser_restriction(self, chat_id: int, user_id: int):
+        await self.db["newuser_restrictions"].delete_one(
+            {"chat_id": chat_id, "user_id": user_id}
+        )
+
+    async def cleanup_newuser_restrictions(self):
+        await self.db["newuser_restrictions"].delete_many(
+            {"expires_at": {"$lte": datetime.utcnow()}}
+        )
+
