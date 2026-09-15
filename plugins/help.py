@@ -27,6 +27,14 @@ PAGES = [
         "note": "These commands are available to group administrators."
     },
     {
+        "title": "New User Protection",
+        "icon": "auth",
+        "commands": [
+            ("/newuser", "Open the New User Protection panel. Configure enable/disable and the restriction duration."),
+        ],
+        "note": "New members can be limited to text-only messages for a configurable period. Telegram automatically lifts the restriction when the timer expires."
+    },
+    {
         "title": "Moderation & Configuration",
         "icon": "auth",
         "commands": [
