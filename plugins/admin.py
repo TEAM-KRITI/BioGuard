@@ -20,14 +20,14 @@ logger = logging.getLogger("BioLinkRemover.Admin")
 # settings are required. Replace SELF_PROMO_IMAGE_URL with the final public
 # image URL when you want the promo to be sent as a photo; leaving it empty
 # makes the system send the same promo as a text message.
-SELF_PROMO_IMAGE_URL = ""
+SELF_PROMO_IMAGE_URL = "https://graph.org/file/7310c1a3a1ff8f3cf1714-d28fb916d188602312.jpg"
 SELF_PROMO_TEXT = (
-    "<b>🛡️ Bio Link Restrictor</b>\n\n"
+    "<b>🛡️ 𝖡𝗂𝗈 𝖦𝗎𝖺𝗋𝖽𝗂𝖺𝗇 𝖡𝗈𝗍</b>\n\n"
     "Keep your Telegram groups clean from suspicious bios, links and spam "
-    "with <b>Bio Link Restrictor</b>.\n\n"
+    "with <b>𝖡𝗂𝗈 𝖦𝗎𝖺𝗋𝖽𝗂𝖺𝗇 𝖡𝗈𝗍</b>.\n\n"
     "Add the bot to your groups and keep your community protected."
 )
-SELF_PROMO_BUTTON_TEXT = "➕ Add BioGuard"
+SELF_PROMO_BUTTON_TEXT = "• Aᴅᴅ Tσ Yσᴜʀ Gʀσᴜᴘ •"
 SELF_PROMO_INTERVAL = 24 * 60 * 60
 SELF_PROMO_DELETE_AFTER = 48 * 60 * 60
 SELF_PROMO_LOCK = asyncio.Lock()
@@ -51,7 +51,7 @@ async def _selfpromo_button(client: Client):
             [premium_button(
                 SELF_PROMO_BUTTON_TEXT,
                 "add",
-                ButtonStyle.SUCCESS,
+                ButtonStyle.DANGER,
                 url=f"https://t.me/{me.username}?startgroup=true",
             )]
         ])
