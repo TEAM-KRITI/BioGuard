@@ -360,7 +360,7 @@ async def newuser_callback(client: Client, callback_query: CallbackQuery):
 
     if action == "newuser_time":
         duration = int(data[2])
-        if duration < 30 or duration > MAX_DURATION:
+        if duration < 30 * 60 or duration > MAX_DURATION:
             await callback_query.answer("Invalid duration.", show_alert=True)
             return
         await save_config(client, chat_id, duration=duration)
@@ -383,7 +383,7 @@ async def newuser_callback(client: Client, callback_query: CallbackQuery):
         return
 
     if action == "newuser_custom":
-        CUSTOM_PENDING[callback_query.from_user.id] = {
+        CUSTOM_PENDING[(callback_query.from_user.id, chat_id)] = {
             "chat_id": chat_id,
             "expires": time.time() + CUSTOM_TIMEOUT,
         }
@@ -405,12 +405,12 @@ async def custom_duration_input(client: Client, message: Message):
     if not message.from_user:
         return
 
-    pending = CUSTOM_PENDING.get(message.from_user.id)
+    pending = CUSTOM_PENDING.get((message.from_user.id, message.chat.id))
     if not pending:
         return
 
     if pending["expires"] < time.time():
-        CUSTOM_PENDING.pop(message.from_user.id, None)
+        CUSTOM_PENDING.pop((message.from_user.id, message.chat.id), None)
         return
 
     chat_id = pending["chat_id"]
@@ -418,7 +418,7 @@ async def custom_duration_input(client: Client, message: Message):
         return
 
     if not await is_admin_or_owner(client, chat_id, message.from_user.id):
-        CUSTOM_PENDING.pop(message.from_user.id, None)
+        CUSTOM_PENDING.pop((message.from_user.id, message.chat.id), None)
         return
 
     duration = parse_duration(message.text or "")
@@ -429,7 +429,7 @@ async def custom_duration_input(client: Client, message: Message):
         )
         return
 
-    CUSTOM_PENDING.pop(message.from_user.id, None)
+    CUSTOM_PENDING.pop((message.from_user.id, message.chat.id), None)
     await save_config(client, chat_id, duration=duration)
     await message.reply_text(
         f"{premium_emoji('confirm', '✅')} <b>Custom duration saved:</b> {format_duration(duration)}."
