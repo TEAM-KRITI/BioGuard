@@ -1,0 +1,22 @@
+{
+  "name": "BioGuard",
+  "description": "Telegram BioGuard / BioLinkRemover moderation bot.",
+  "repository": "https://github.com/TEAM-KRITI/BioGuard",
+  "keywords": ["telegram", "bot", "pyrogram", "mongodb", "moderation"],
+  "buildpacks": [
+    {"url": "heroku/python"}
+  ],
+  "formation": {
+    "worker": {"quantity": 1, "size": "basic"}
+  },
+  "env": {
+    "API_ID": {"description": "Telegram API ID", "required": true},
+    "API_HASH": {"description": "Telegram API hash", "required": true},
+    "BOT_TOKEN": {"description": "Bot token from @BotFather", "required": true},
+    "OWNER_ID": {"description": "Telegram numeric owner ID", "required": true},
+    "MONGO_DB": {"description": "MongoDB connection URI", "required": true},
+    "MONGODB_DB_NAME": {"description": "MongoDB database name", "value": "BioLinkRemover"},
+    "LOGGER_GROUP": {"description": "Logger group chat ID", "required": false},
+    "DATABASE_CHANNEL": {"description": "Database channel ID (optional)", "required": false}
+  }
+}
