@@ -23,10 +23,10 @@ logger = logging.getLogger("BioLinkRemover.Start")
 # CONFIG
 # ============================================================
 
-SUPPORT_URL = "https://t.me/ArchonCare"
+SUPPORT_URL = "https://t.me/annu_updates"
 
 # Apni START IMAGE URL yahan lagao
-START_IMAGE = "https://example.com/start.jpg"
+START_IMAGE = "https://anya-file-host.vercel.app/3n4jy3fu9e"
 
 
 # ============================================================
