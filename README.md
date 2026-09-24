@@ -1,109 +1,172 @@
-# 🛡️ BioLinkRemover Bot
 
-`BioLinkRemover` is a powerful, production-ready Telegram group security and auto-moderation bot. It automatically scans the biography/about sections of users sending messages in your group. If a user's bio contains spam links, blacklisted domains, or dirty words, the bot deletes their message and applies a configurable punishment (mute, kick, or ban).
+<h2 align="center">
+     ──「 Orion ꭙ Music 」──
+</h2>
 
----
+<p align="center"><a href="https://t.me/Swagger_Soul"><img src="https://files.catbox.moe/uet7v1.jpg"></a></p>
 
-## ✨ Features
+<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"><img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif"></a>  
+ <p align="center">
+    ᴧ ᴛᴇʟᴇɢʀᴧᴍ ʙᴏᴛ ᴛᴏ ᴘʟᴧʏ ᴍᴜsɪᴄ ɪɴ ᴧ ᴠɪᴅᴇᴏ ᴄʜᴧᴛs.
+    <br />
+   </strong></a>
+  </p>
 
-- **Automated Bio Scanner:** Scans user profiles using Telegram's raw API (`GetFullUser`) upon sending messages.
-- **Link & Keyword Blocker:** Checks bios against a robust URL pattern regex and custom lists of dirty words/spam links.
-- **Interactive Moderation Cards:**
-  - **Mute Mode:** Warning cards include a **🔄 Refresh (Check Bio Again)** button. Muted users can clean their bio and click this button to self-unmute without needing administrator help.
-  - **Ban Mode:** Warning cards include an **🔓 Unban User** button so group administrators can lift bans instantly.
-- **Group Whitelisting:** Admins can approve specific users to bypass all bio scans.
-- **Dynamic Configuration:** Easily set punishment types (`mute`, `kick`, `ban`) via commands or an inline interactive settings panel.
-- **Silent Database Registration:** Automatically caches and stores user and group data into MongoDB on first contact.
-- **Broadcast System:** Owner-only commands to broadcast text or forward media to all registered groups and users.
-- **High Performance Caching:** Utilizes in-memory sets and TTL caches for whitelists, configs, and admin lists to prevent rate limits and API FloodWaits.
 
----
+<hr>
 
-## 🛠️ Project Structure
+## 🍁 ᴧʙᴏᴜᴛ ᴛʜɪs ʙᴏᴛ :
 
-```
-BioLinkProtections/
-├── .env                  # Environment configuration secrets
-├── requirements.txt      # Project python dependencies
-├── config.py             # Global configurations & environment variable loader
-├── main.py               # Application entrypoint
-├── setup.sh              # Bash installer for Linux VPS deployment
-├── Client/
-│   ├── __init__.py
-│   ├── bot.py            # Custom Client subclass with db connection and startup caching
-│   ├── database.py       # Asynchronous MongoDB database driver (Motor)
-│   ├── cache.py          # Shared sets and dicts for caching whitelists, config, and admins
-│   └── helpers.py        # Shared permission checking and cache retrievers
-└── plugins/
-    ├── __init__.py
-    ├── admin.py          # Group moderation & owner broadcast commands
-    ├── start.py          # /start command greeting menus (PM & Groups)
-    └── watcher.py        # Core bio scanner and automated card interactions
-```
+![streamingfilestreambot-professional-live_1](https://user-images.githubusercontent.com/88939380/137127129-a86fc939-2931-4c66-b6f6-b57711a9eab7.png)
 
----
+</p>
+<p align='center'>
+    ᴛʜɪs ʀᴇᴘᴏ ᴡɪʟʟ ᴜsᴇ ᴛᴏ ᴅᴇᴘʟᴏʏ ғᴏʀ ᴍᴜsɪᴄ ᴘʟᴧʏɪɴɢ ʙᴏᴛ ᴏғ ᴛᴇʟᴇɢʀᴧᴍ
+</p>
 
-## 📋 Commands Index
 
-| Command | Scope | Level | Description |
-| :--- | :--- | :--- | :--- |
-| `/start` | PM & Groups | All Users | Starts the bot; returns interactive welcoming menus. |
-| `/help` | PM & Groups | Admins / Owner | Displays help details tailored to permissions. |
-| `/approve` | Groups | Group Admins | Whitelists a user (via reply or ID/username) to bypass bio scans. |
-| `/unapprove` | Groups | Group Admins | Removes a user from the group whitelist. |
-| `/unapproveall`| Groups | Group Admins | Clears all whitelisted users in the current group. |
-| `/approved` | Groups | Group Admins | Lists all currently whitelisted users in the group. |
-| `/config` | Groups | Group Admins | Configures punishment mode (`ban`, `mute`, `kick`) via buttons. |
-| `/stats` | Private Chat | Bot Owner | Shows bot usage stats (registered users and groups). |
-| `/gcast` | Private Chat | Bot Owner | Broadcasts text or forwards a replied message to all groups. |
-| `/ucast` | Private Chat | Bot Owner | Broadcasts text or forwards a replied message to all users. |
+## ♢ ʜᴏᴡ ᴛᴏ ᴍᴧᴋᴇ ʏᴏᴜʀ ᴏᴡɴ :
 
----
 
-## 🚀 Setup & VPS Deployment Guide
+#### ♢ Click on This Drop-down and get more details
+<br>
+<details>
+  <summary><b>ᴅᴇᴘʟᴏʏ ᴏɴ ʜᴇʀᴏᴋᴜ:</b></summary>
 
-### Prerequisites
-- **Python 3.10+**
-- **MongoDB Database:** Get a free Atlas connection string at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
-- **Telegram Credentials:** Get your `API_ID` and `API_HASH` at [my.telegram.org](https://my.telegram.org/), and a `BOT_TOKEN` from [@BotFather](https://t.me/BotFather).
 
-### VPS Setup (Linux Ubuntu/Debian)
-1. Upload the project folder to your VPS.
-2. Navigate to the project directory and run the automatic setup script:
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-3. The setup script will:
-   - Install required system packages (`python3-venv`, `git`, etc.).
-   - Set up a Python virtual environment and install requirements.
-   - Interactively ask you to fill in your `.env` configuration (it will read and pre-fill existing values if available).
-   - Ask if you want to install and launch the bot as a **systemd service** (`biolink.service`) for 24/7 background running.
+1. Fork This Repo
+2. Click on the button to Deploy and follow steps
 
-### Manual Running
-If you choose to run the bot manually:
-```bash
-# Activate virtual environment
-source venv/bin/activate
+<h4> So Follow Above Steps 👆 and then deploy other wise bot won't work</h4>
 
-# Start the bot
-python main.py
+Press the below button to Fast deploy on Heroku/Raiwlay
+Either you could locally host or deploy on [Heroku](https://heroku.com)
+### 💜 ʜᴇʀᴏᴋᴜ
+
+<p align="center"><a href="https://dashboard.heroku.com/new?template=https://github.com/TEAM-KRITI/amtamusic"> <img src="https://www.herokucdn.com/deploy/button.svg"></a></p>
+
+<br>
+
+
+then goto the <a href="#mandatory-vars">variables tab</a> for more info on setting up environmental variables. </details>
+
+<details>
+  <summary><b>Features:</b></summary>
+  
+<p>
+
+🚀ғᴇᴧᴛᴜʀᴇs<p>
+💥Superfast⚡️ download and stream links.<br>
+💥No ads in playing songs.<br>
+💥Superfast interface.<br>
+💥Updates channel Support.<br>
+💥Mongodb database support for broadcasting.<br>
+💥User Freindly Interface.<br>
+💥Ping check.<br>
+💥Kickme and Video Chat Notifier are Available.<br>
+💥Real time CPU , RAM , Internet usage. <br>
+💥All unwanted code removed. <br>
+💥A lot more tired of writing check out by deploying it. 
+</details>
+<details>
+  <summary><b>ʜᴏsᴛ ɪᴛ ᴏɴ ᴠᴘs ʟᴏᴄᴧʟʟʏ :</b></summary>
+
+
+```py
+sudo apt-get install python3-pip ffmpeg -y
+sudo apt-get install python3-pip -y
+sudo pip3 install -U pip
+curl -fssL
+https://deb.nodesource.com/setup_19.x | sudo -E bash - && sudo apt-get install nodejs -y && npm i -g npm
+git clone https://github.com/itsAarumi/SanataniMusic && cd SanataniMusic
+pip3 install -U -r requirements.txt
+bash setup
+sudo apt install tmux
+tmux kill-session
+tmux
+bash start
+Ctrl+b then d
 ```
 
-### Managing the Service
-If you configured the systemd service:
-- **Check Bot Status:** `sudo systemctl status biolink`
-- **View Live Logs:** `sudo journalctl -u biolink -f`
-- **Restart Bot:** `sudo systemctl restart biolink`
-- **Stop Bot:** `sudo systemctl stop biolink`
+and to stop the whole bot,
+ do <kbd>CTRL</kbd>+<kbd>C</kbd>
 
----
+Setting up things
 
-## 💳 Credits & License
+If you're on Heroku, just add these in the Environmental Variables
+or if you're Locally hosting, create a file named `sample.env` in the root directory and add all the variables there.
+An example of `sample.env` file:
 
-Made with ❤️ by:
-- **Archon:** [@TheArchon](https://github.com/TheArchon)
-- **Telegram:** [@ArchonNetwork](https://t.me/ArchonNetwork)
-- **Ayush:** [@mightyayush](https://github.com/mightyayush)
+```py
+API_ID=
+API_HASH=
+BOT_TOKEN=
+LOGGER_ID=
+MONGO_DB_URI=
+OWNER_ID=
+STRING_SESSION=
+```
+  </details>
 
-*This code was published by @TeamArchon*
+<details>
+  <summary><b>ᴠᴧʀs ᴧɴᴅ ᴅᴇᴧᴛᴧɪʟs :</b></summary>
+
+`API_ID` : Goto [my.telegram.org](https://my.telegram.org) to obtain this.
+
+`API_HASH` : Goto [my.telegram.org](https://my.telegram.org) to obtain this.
+
+`BOT_TOKEN` : Get the bot token from [@BotFather](https://telegram.dog/BotFather)
+  
+`OWNER_ID` : Your Telegram User ID
+
+`LOGGER_ID` : Your Telegram Chat ID For logs Where Bot and Assistant Id Should Be AdMin! 
+
+`STRING_SESSION` : Add String session for assistant to play songs on voice chat.
+
+`DATABASE_URL` : MongoDB URI for saving User IDs when they first Start the Bot. We will use that for Broadcasting to them. I will try to add more features related with Database. If you need help to get the URI you can click on logo below!
+
+[![mongo](https://telegra.ph/file/fd68906852c71fdd68bef.jpg)](https://www.youtube.com/watch?v=HhHzCfrqsoE)
+
+ Option Vars
+
+`UPDATES_CHANNEL` : Put a Public Channel Username, so every user have to Join that channel to use the bot. Must add bot to channel as Admin to work properly.
+ </details>
+
+<details>
+  <summary><b>ʜᴏᴡ ᴛᴏ ᴜsᴇ :</b></summary>
+
+:warning: **Before using the  bot, don't forget to add the bot to the `Logger_Chat` as an Admin**
+ 
+- `/start` : To check if the bot is alive or not.
+
+- `/play ᴏʀ /vplay ᴏʀ /cplay` : sᴛᴀʀᴛs sᴛʀᴇᴀᴍɪɴɢ ᴛʜᴇ ʀᴇǫᴜᴇsᴛᴇᴅ ᴛʀᴀᴄᴋ ᴏɴ ᴠɪᴅᴇᴏᴄʜᴀᴛ.
+
+- `/playforce ᴏʀ /vplayforce ᴏʀ /cplayforce` : **ғᴏʀᴄᴇ ᴩʟᴀʏ** sᴛᴏᴩs ᴛʜᴇ ᴏɴɢᴏɪɴɢ sᴛʀᴇᴀᴍ ᴀɴᴅ sᴛᴀʀᴛs sᴛʀᴇᴀᴍɪɴɢ ᴛʜᴇ ʀᴇǫᴜᴇsᴛᴇᴅ ᴛʀᴀᴄᴋ.
+
+- `/channelplay [ᴄʜᴀᴛ ᴜsᴇʀɴᴀᴍᴇ ᴏʀ ɪᴅ] ᴏʀ [ᴅɪsᴀʙʟᴇ]` : ᴄᴏɴɴᴇᴄᴛ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴀ ɢʀᴏᴜᴩ ᴀɴᴅ sᴛᴀʀᴛs sᴛʀᴇᴀᴍɪɴɢ ᴛʀᴀᴄᴋs ʙʏ ᴛʜᴇ ʜᴇʟᴩ ᴏғ ᴄᴏᴍᴍᴀɴᴅs sᴇɴᴛ ɪɴ ɢʀᴏᴜᴩ.
+
+- `/seek` : sᴇᴇᴋ ᴛʜᴇ sᴛʀᴇᴀᴍ ᴛᴏ ᴛʜᴇ ɢɪᴠᴇɴ ᴅᴜʀᴀᴛɪᴏɴ.
+
+- `/seekback` : ʙᴀᴄᴋᴡᴀʀᴅ sᴇᴇᴋ ᴛʜᴇ sᴛʀᴇᴀᴍ ᴛᴏ ᴛʜᴇ ᴛʜᴇ ɢɪᴠᴇɴ ᴅᴜʀᴀᴛɪᴏɴ.
+
+- `/pause` : ᴩᴀᴜsᴇ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ᴩʟᴀʏɪɴɢ sᴛʀᴇᴀᴍ.
+
+- `/resume` : ʀᴇsᴜᴍᴇ ᴛʜᴇ ᴩᴀᴜsᴇᴅ sᴛʀᴇᴀᴍ.
+
+- `/skip` : sᴋɪᴩ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ᴩʟᴀʏɪɴɢ sᴛʀᴇᴀᴍ ᴀɴᴅ sᴛᴀʀᴛ sᴛʀᴇᴀᴍɪɴɢ ᴛʜᴇ ɴᴇxᴛ ᴛʀᴀᴄᴋ ɪɴ ǫᴜᴇᴜᴇ.
+
+- `/end ᴏʀ /stop` : ᴄʟᴇᴀʀs ᴛʜᴇ ǫᴜᴇᴜᴇ ᴀɴᴅ ᴇɴᴅ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ᴩʟᴀʏɪɴɢ sᴛʀᴇᴀᴍ.
+
+To get an instant result do /reboot in chat of logger .
+  
+![image](https://graph.org/file/801e199f756d83cb4d7f5-068bb84543385c04b6.jpg)
+
+
+### ᴄʜᴧɴɴᴇʟ sᴜᴘᴘᴏᴜʀᴛ
+Bot also Supported with Channels. Just add bot and assistant to the Channel as Admin. </details>
+
+### ♢ ᴄʀᴇᴅɪᴛs : 
+
+- [ɪᴛᴢ'ᴍᴇ](https://github.com/itsAarumi)
+- [ᴛᴇʟᴇɢʀᴧᴍ](https://t.me/Swagger_Soul)
+- Everyone In This Journey !
